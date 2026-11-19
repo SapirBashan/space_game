@@ -1,0 +1,242 @@
+/* Modern Laboratory Matte UI & Component Styles */
+
+:root {
+    --primary-matte: #1E3A5F;
+    --primary-hover: #162C46;
+    --primary-pressed: #0F1E30;
+    --primary-accent: #0284C7;
+    --page-bg: #F1F5F9;
+    --panel-bg: #FFFFFF;
+    --table-header: #E2E8F0;
+    --border-color: #CBD5E1;
+    --border-light: #E2E8F0;
+    --surface-white: #FFFFFF;
+    --text-main: #0F172A;
+    --text-muted: #64748B;
+    --error-red: #DC2626;
+    --warning-amber: #D97706;
+    --success-green: #059669;
+    --accent-sky: #E0F2FE;
+    --terminal-bg: #0B1120;
+}
+
+body {
+    background-color: var(--page-bg) !important;
+    color: var(--text-main) !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Persistent Global Matte Blue Header */
+.app-header {
+    background: linear-gradient(180deg, #1E3A5F 0%, #172D4A 100%) !important;
+    color: #FFFFFF !important;
+    height: 64px !important;
+    padding: 0 28px !important;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.app-title {
+    font-size: 20px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.9px !important;
+    color: #FFFFFF !important;
+}
+
+/* Modern Status Pill Badges */
+.status-badge {
+    padding: 4px 12px !important;
+    border-radius: 9999px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.6px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+}
+
+.status-connected {
+    background-color: #059669 !important;
+    color: #FFFFFF !important;
+}
+
+.status-disconnected {
+    background-color: #64748B !important;
+    color: #FFFFFF !important;
+}
+
+.status-recording {
+    background-color: #DC2626 !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 0 8px rgba(220, 38, 38, 0.5) !important;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(0.98); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+/* Primary and Secondary Matte Engineering Buttons */
+.btn-primary {
+    background-color: var(--primary-matte) !important;
+    color: #FFFFFF !important;
+    font-weight: 600 !important;
+    border-radius: 6px !important;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.1) !important;
+    transition: all 0.15s ease-in-out !important;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-hover) !important;
+    box-shadow: 0 2px 4px rgba(15, 23, 42, 0.15) !important;
+}
+
+.btn-primary:active {
+    background-color: var(--primary-pressed) !important;
+}
+
+.btn-success {
+    background-color: #059669 !important;
+    color: #FFFFFF !important;
+    font-weight: 700 !important;
+    border-radius: 6px !important;
+    box-shadow: 0 1px 2px rgba(5, 150, 105, 0.2) !important;
+    transition: all 0.15s ease-in-out !important;
+}
+
+.btn-success:hover {
+    background-color: #047857 !important;
+    box-shadow: 0 2px 4px rgba(5, 150, 105, 0.3) !important;
+}
+
+.btn-danger {
+    background-color: var(--error-red) !important;
+    color: #FFFFFF !important;
+    font-weight: 600 !important;
+    border-radius: 6px !important;
+    box-shadow: 0 1px 2px rgba(220, 38, 38, 0.2) !important;
+}
+
+.excel-cell {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+    font-size: 11px !important;
+    text-align: right !important;
+}
+
+/* High Contrast Metric Cards */
+.metric-card {
+    background-color: var(--surface-white) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 8px !important;
+    padding: 14px 18px !important;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06) !important;
+    transition: box-shadow 0.15s ease-in-out !important;
+}
+
+.metric-card:hover {
+    box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.1) !important;
+}
+
+.metric-title {
+    font-size: 11px !important;
+    text-transform: uppercase !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.6px !important;
+    color: var(--text-muted) !important;
+    margin-bottom: 4px !important;
+}
+
+.metric-val {
+    font-size: 24px !important;
+    font-weight: 800 !important;
+    color: var(--text-main) !important;
+    letter-spacing: -0.5px !important;
+}
+
+/* Modern Panel Containers */
+.panel-container {
+    background-color: var(--surface-white) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 8px !important;
+    padding: 18px !important;
+    margin-bottom: 16px !important;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05) !important;
+}
+
+.panel-header {
+    font-size: 15px !important;
+    font-weight: 800 !important;
+    color: var(--primary-matte) !important;
+    margin-bottom: 14px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    letter-spacing: 0.3px !important;
+}
+
+/* Modern Sleek Navigation Tabs */
+.q-tabs {
+    background-color: var(--surface-white) !important;
+    border-bottom: 2px solid var(--border-light) !important;
+}
+
+.q-tab {
+    font-weight: 600 !important;
+    color: var(--text-muted) !important;
+    text-transform: none !important;
+    font-size: 14px !important;
+    transition: all 0.15s ease-in-out !important;
+}
+
+.q-tab--active {
+    color: var(--primary-matte) !important;
+    background-color: #F8FAFC !important;
+    border-bottom: 3px solid var(--primary-matte) !important;
+    font-weight: 800 !important;
+}
+
+/* High Contrast Modern Tables */
+.q-table {
+    border: 1px solid var(--border-color) !important;
+    border-radius: 6px !important;
+}
+
+.q-table th {
+    background-color: var(--table-header) !important;
+    color: var(--text-main) !important;
+    font-weight: 800 !important;
+    font-size: 12px !important;
+    letter-spacing: 0.4px !important;
+    border-bottom: 2px solid var(--border-color) !important;
+}
+
+.q-table td {
+    font-size: 13px !important;
+    color: var(--text-main) !important;
+    border-bottom: 1px solid var(--border-light) !important;
+}
+
+.q-table tbody tr:hover {
+    background-color: #F8FAFC !important;
+}
+
+/* Terminal / Log Box */
+.terminal-box {
+    background-color: var(--terminal-bg) !important;
+    color: #10B981 !important;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+    padding: 14px !important;
+    border-radius: 6px !important;
+    font-size: 12px !important;
+    overflow-y: auto !important;
+    max-height: 220px !important;
+    border: 1px solid #1E293B !important;
+}
