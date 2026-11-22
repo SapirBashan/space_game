@@ -12,6 +12,8 @@ import numpy as np
 class RadarFrame:
     """Represents a single radar PSP measurement matrix and metadata.
 
+    
+
     Internal convention:
     - matrix shape is (num_elements, num_frequencies), axis 0 = elements, axis 1 = frequencies.
     - Raw units: AMP = dB, NOISE = dB, PHASE = radians.

@@ -1,4 +1,5 @@
-"""Reports & Exports tab implementation.
+"""Reports & Exports workspace for compiling consolidated HTML laboratory reports
+and exporting structured telemetry logs and anomaly metrics as CSV.
 """
 
 import os
@@ -14,6 +15,7 @@ from app.reports.report_generator import (
     export_test_summary_to_csv,
     generate_html_report,
 )
+from app.ui.components import create_card_header
 
 
 class ReportsView:
@@ -22,114 +24,192 @@ class ReportsView:
     def __init__(self, manager: SessionManager):
         self.manager = manager
         self.preview_container = None
+        self.status_container = None
         self.last_report_path = None
+        self.last_report_filename = None
 
     def render(self):
         """Construct the Reports & Exports tab layout."""
-        with ui.column().classes("w-full p-4 gap-4"):
-            # 1. Export Action Cards
-            with ui.card().classes("w-full panel-container"):
-                ui.label("Laboratory Report & Data Export Actions").classes("panel-header")
-                with ui.row().classes("w-full items-center gap-4 flex-wrap"):
-                    ui.button(
-                        "Generate HTML Diagnostics Report",
-                        icon="description",
-                        on_click=self._handle_generate_html_report,
-                    ).classes("btn-primary")
+        with ui.column().classes("w-full gap-4"):
+            # 2-Column Responsive Workspace: Config on Left, Preview on Right
+            with ui.row().classes("w-full gap-4 items-start no-wrap flex-col lg:flex-row"):
+                # Left Column: Report Setup & Export Actions (approx 420px wide)
+                with ui.column().classes("w-full lg:w-[420px] gap-4 flex-shrink-0"):
+                    # Report Configuration Card
+                    with ui.card().classes("app-card w-full"):
+                        create_card_header(
+                            title="Laboratory Report Setup",
+                            subtitle="Configure summary parameters & sections",
+                            icon="assessment",
+                        )
 
-                    ui.button(
-                        "Export Test Summaries CSV",
-                        icon="table_chart",
-                        on_click=self._handle_export_summary_csv,
-                    ).props("outline color=primary")
+                        with ui.column().classes("w-full gap-3"):
+                            # Current context
+                            with ui.row().classes("w-full justify-between items-center p-2.5 bg-slate-50 rounded-lg border border-slate-200"):
+                                with ui.column().classes("gap-0"):
+                                    ui.label("Active Session").classes("text-[10px] font-bold text-slate-400 uppercase")
+                                    ui.label(self.manager.session_name).classes("text-xs font-bold text-slate-800")
+                                ui.label(self.manager.active_data_type).classes("chip-info")
 
-                    ui.button(
-                        "Export Anomalies List CSV",
-                        icon="warning",
-                        on_click=self._handle_export_anomalies_csv,
-                    ).props("outline color=primary")
+                            self.report_title_input = ui.input(
+                                label="Report Title",
+                                value=f"PSP Radar Diagnostics Summary ({self.manager.active_data_type})",
+                            ).props("outlined dense").classes("w-full")
 
-                    ui.button(
-                        "Export Element Stability CSV",
-                        icon="reorder",
-                        on_click=self._handle_export_elements_csv,
-                    ).props("outline color=primary")
+                            ui.label("Included Report Sections:").classes("text-xs font-bold text-slate-700 uppercase mt-1")
+                            with ui.column().classes("gap-1.5 pl-1"):
+                                self.chk_summary = ui.checkbox("Statistical Metric Summaries", value=True).props("dense size=sm")
+                                self.chk_charts = ui.checkbox("Embedded Element & Channel Plots", value=True).props("dense size=sm")
+                                self.chk_anom = ui.checkbox("Anomaly Records & Tolerance Violations", value=True).props("dense size=sm")
+                                self.chk_stability = ui.checkbox("Cross-Test Stability & Rankings", value=True).props("dense size=sm")
 
-                    ui.button(
-                        "Export Frequency Stability CSV",
-                        icon="bar_chart",
-                        on_click=self._handle_export_frequencies_csv,
-                    ).props("outline color=primary")
+                            # Primary Action Button
+                            ui.button(
+                                "Generate Diagnostics Report",
+                                icon="auto_graph",
+                                on_click=self._handle_generate_html_report,
+                            ).classes("btn-primary w-full py-2.5 mt-2")
 
-            # 2. Report Details & Status
-            with ui.card().classes("w-full panel-container"):
-                ui.label("Consolidated HTML Report Status").classes("panel-header")
-                self.status_label = ui.label("No report generated yet during this session.").classes("text-gray-600 mb-2")
-                self.link_container = ui.row().classes("items-center gap-2")
+                    # Structured CSV Exports Card
+                    with ui.card().classes("app-card w-full"):
+                        create_card_header(
+                            title="Export Raw Data",
+                            subtitle="Download tabular metrics as standard CSV",
+                            icon="file_download",
+                        )
 
-            # 3. Report Interactive Preview Container
-            with ui.card().classes("w-full panel-container"):
-                ui.label("Report Preview").classes("panel-header")
-                self.preview_container = ui.column().classes("w-full min-h-[400px]")
+                        with ui.column().classes("w-full gap-2"):
+                            with ui.row().classes("w-full justify-between items-center p-2 rounded-lg hover:bg-slate-50 transition-colors"):
+                                with ui.column().classes("gap-0"):
+                                    ui.label("Test Summaries CSV").classes("text-xs font-bold text-slate-800")
+                                    ui.label("Aggregated means, std dev, min/max per test").classes("text-[11px] text-slate-500")
+                                ui.button(
+                                    "Export",
+                                    icon="download",
+                                    on_click=self._handle_export_summary_csv,
+                                ).classes("btn-secondary")
+
+                            with ui.row().classes("w-full justify-between items-center p-2 rounded-lg hover:bg-slate-50 transition-colors"):
+                                with ui.column().classes("gap-0"):
+                                    ui.label("Anomalies List CSV").classes("text-xs font-bold text-slate-800")
+                                    ui.label("Detailed log of threshold breaches").classes("text-[11px] text-slate-500")
+                                ui.button(
+                                    "Export",
+                                    icon="download",
+                                    on_click=self._handle_export_anomalies_csv,
+                                ).classes("btn-secondary")
+
+                            with ui.row().classes("w-full justify-between items-center p-2 rounded-lg hover:bg-slate-50 transition-colors"):
+                                with ui.column().classes("gap-0"):
+                                    ui.label("Element Stability CSV").classes("text-xs font-bold text-slate-800")
+                                    ui.label("Per-element variance across test runs").classes("text-[11px] text-slate-500")
+                                ui.button(
+                                    "Export",
+                                    icon="download",
+                                    on_click=self._handle_export_elements_csv,
+                                ).classes("btn-secondary")
+
+                            with ui.row().classes("w-full justify-between items-center p-2 rounded-lg hover:bg-slate-50 transition-colors"):
+                                with ui.column().classes("gap-0"):
+                                    ui.label("Frequency Stability CSV").classes("text-xs font-bold text-slate-800")
+                                    ui.label("Per-channel variance across test runs").classes("text-[11px] text-slate-500")
+                                ui.button(
+                                    "Export",
+                                    icon="download",
+                                    on_click=self._handle_export_frequencies_csv,
+                                ).classes("btn-secondary")
+
+                # Right Column: Interactive Report Preview & Status Panel
+                with ui.card().classes("app-card flex-1 min-w-0 w-full"):
+                    create_card_header(
+                        title="Consolidated Report Preview",
+                        subtitle="Standalone laboratory HTML document preview",
+                        icon="preview",
+                    )
+
+                    self.status_container = ui.column().classes("w-full mb-3")
+                    self.preview_container = ui.column().classes("w-full min-h-[500px]")
 
         self.refresh()
 
     def refresh(self):
         """Refresh preview if report exists."""
+        self._update_status_and_preview()
+
+    def _update_status_and_preview(self):
+        if not self.status_container or not self.preview_container:
+            return
+
+        self.status_container.clear()
+        self.preview_container.clear()
+
         if self.last_report_path and os.path.isfile(self.last_report_path):
-            self._render_preview()
+            file_size_kb = round(os.path.getsize(self.last_report_path) / 1024, 1)
+            filename = self.last_report_filename or os.path.basename(self.last_report_path)
+
+            with self.status_container:
+                with ui.row().classes("w-full justify-between items-center p-3 bg-emerald-50 rounded-lg border border-emerald-200"):
+                    with ui.row().classes("items-center gap-2"):
+                        ui.icon("check_circle", color="positive", size="20px")
+                        with ui.column().classes("gap-0"):
+                            ui.label("Report Generated Successfully").classes("text-xs font-bold text-emerald-900")
+                            ui.label(f"{filename} • {file_size_kb} KB").classes("text-xs text-emerald-700")
+
+                    ui.button(
+                        "Open in New Tab",
+                        icon="open_in_new",
+                        on_click=lambda: ui.open(f"/reports/{filename}"),
+                    ).classes("btn-primary")
+
+            with self.preview_container:
+                # Embedded iframe preview of the generated HTML report
+                ui.html(
+                    f'<iframe src="/reports/{filename}" class="w-full h-[580px] rounded-lg border border-slate-200"></iframe>'
+                ).classes("w-full")
+        else:
+            with self.preview_container:
+                with ui.column().classes("w-full items-center justify-center p-12 text-center text-slate-400 gap-3 border border-dashed border-slate-200 rounded-lg"):
+                    ui.icon("description", size="48px").classes("opacity-40")
+                    ui.label("No Report Generated Yet").classes("text-base font-bold text-slate-600")
+                    ui.label(
+                        "Click 'Generate Diagnostics Report' on the left to compile an interactive HTML document with embedded Plotly charts, anomaly tables, and distribution metrics."
+                    ).classes("text-xs max-w-[460px] text-slate-500 leading-relaxed")
 
     def _handle_generate_html_report(self):
         reports_dir = default_config.reports_dir
         os.makedirs(reports_dir, exist_ok=True)
 
         now_str = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"Radar_Diagnostics_Report_{self.manager.session_name}_{now_str}.html"
+        filename = f"Radar_Report_{self.manager.session_name}_{now_str}.html"
         full_path = os.path.join(reports_dir, filename)
 
         generate_html_report(self.manager, output_path=full_path)
         self.last_report_path = full_path
-
-        self.status_label.text = f"Report successfully generated at: {full_path}"
-        self.link_container.clear()
-        with self.link_container:
-            ui.button("Open Report in Browser", icon="open_in_new", on_click=lambda: ui.open(f"/reports/{filename}")).classes("btn-primary")
-            ui.label(f"Size: {round(os.path.getsize(full_path) / 1024, 1)} KB").classes("text-sm text-gray-500 ml-2")
+        self.last_report_filename = filename
 
         ui.notify("HTML Diagnostics Report generated successfully!", type="positive")
-        self._render_preview()
-
-    def _render_preview(self):
-        self.preview_container.clear()
-        if not self.last_report_path or not os.path.isfile(self.last_report_path):
-            return
-
-        with open(self.last_report_path, "r", encoding="utf-8") as f:
-            html_content = f.read()
-
-        with self.preview_container:
-            escaped_html = html_content.replace('"', '&quot;')
-            ui.html(f'<iframe srcdoc="{escaped_html}" style="width:100%; height:600px; border:1px solid #E0E0E0; border-radius:4px;"></iframe>')
+        self._update_status_and_preview()
 
     def _handle_export_summary_csv(self):
-        csv_str = export_test_summary_to_csv(self.manager)
-        ui.download(csv_str.encode("utf-8"), filename=f"Test_Summary_{self.manager.session_name}.csv")
-        ui.notify("Test summary exported to CSV.", type="positive")
+        summary = self.manager.get_summary_metrics()
+        csv_data = export_test_summary_to_csv(summary)
+        ui.download(csv_data.encode("utf-8"), filename=f"Test_Summaries_{self.manager.session_name}.csv")
+        ui.notify("Exported test summaries CSV", type="positive")
 
     def _handle_export_anomalies_csv(self):
         anomalies = self.manager.get_all_anomalies()
-        csv_str = export_anomalies_to_csv(anomalies)
-        ui.download(csv_str.encode("utf-8"), filename=f"Anomalies_{self.manager.session_name}.csv")
-        ui.notify(f"Exported {len(anomalies)} anomalies to CSV.", type="positive")
+        csv_data = export_anomalies_to_csv(anomalies)
+        ui.download(csv_data.encode("utf-8"), filename=f"Anomalies_{self.manager.session_name}.csv")
+        ui.notify("Exported anomalies CSV", type="positive")
 
     def _handle_export_elements_csv(self):
         rankings = self.manager.get_element_rankings()
-        csv_str = export_element_rankings_to_csv(rankings)
-        ui.download(csv_str.encode("utf-8"), filename=f"Element_Stability_{self.manager.session_name}.csv")
-        ui.notify(f"Exported {len(rankings)} element stability rankings to CSV.", type="positive")
+        csv_data = export_element_rankings_to_csv(rankings)
+        ui.download(csv_data.encode("utf-8"), filename=f"Element_Stability_{self.manager.session_name}.csv")
+        ui.notify("Exported element stability CSV", type="positive")
 
     def _handle_export_frequencies_csv(self):
         rankings = self.manager.get_frequency_rankings()
-        csv_str = export_frequency_rankings_to_csv(rankings)
-        ui.download(csv_str.encode("utf-8"), filename=f"Frequency_Stability_{self.manager.session_name}.csv")
-        ui.notify(f"Exported {len(rankings)} frequency stability rankings to CSV.", type="positive")
+        csv_data = export_frequency_rankings_to_csv(rankings)
+        ui.download(csv_data.encode("utf-8"), filename=f"Frequency_Stability_{self.manager.session_name}.csv")
+        ui.notify("Exported frequency stability CSV", type="positive")

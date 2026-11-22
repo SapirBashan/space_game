@@ -36,6 +36,7 @@ if os.path.isdir(static_dir):
 def index_page():
     """Main dashboard page."""
     ui.page_title("PSP Radar Diagnostics & Live Monitoring")
+    ui.query(".nicegui-content").classes("p-0 m-0 w-full max-w-full h-screen max-h-screen overflow-hidden items-stretch gap-0")
     layout = AppLayout(
         session_manager=session_manager,
         tcp_client=tcp_client,

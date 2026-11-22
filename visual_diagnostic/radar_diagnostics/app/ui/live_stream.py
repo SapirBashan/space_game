@@ -1,7 +1,6 @@
-"""Live Stream & Recording tab implementation.
-
-Provides glitch-free real-time telemetry streaming, green start recording controls,
-and a live Excel-style spreadsheet inspector streaming data in real-time.
+"""Live Stream & Recording workspace designed as a mission-control telemetry center.
+Features glitch-free in-place updating Plotly nodes, real-time KPI metrics,
+collapsible raw matrix spreadsheet inspector, and instant session playback.
 """
 
 import asyncio
@@ -16,6 +15,7 @@ from app.core.session_manager import SessionManager
 from app.models.radar_frame import RadarFrame
 from app.streaming.recording_manager import RecordingManager
 from app.streaming.tcp_client import ConnectionState, RadarTcpClient
+from app.ui.components import create_card_header, create_kpi_card, open_expanded_chart_dialog
 from app.visualization.color_palette import PALETTE, apply_theme_layout
 from app.visualization.heatmaps import create_matrix_heatmap
 from app.visualization.line_plots import (
@@ -25,7 +25,7 @@ from app.visualization.line_plots import (
 
 
 class LiveStreamView:
-    """View component rendering the live TCP stream and recording workspace."""
+    """View component rendering the live TCP telemetry stream and recording workspace."""
 
     def __init__(
         self,
@@ -79,24 +79,29 @@ class LiveStreamView:
         self.client.add_frame_callback(self._on_incoming_frame)
 
     def render(self):
-        """Construct the Live Stream & Recording tab layout."""
-        with ui.column().classes("w-full p-4 gap-4"):
-            # 1. TCP Server Connection & Control Panel
-            with ui.card().classes("w-full panel-container"):
-                ui.label("Radar Stream Connection & Recording Controls").classes("panel-header")
-                with ui.row().classes("w-full items-center gap-4 flex-wrap"):
+        """Construct the Live Stream & Recording workspace layout."""
+        with ui.column().classes("w-full gap-4"):
+            # 1. Connection & Stream Recording Control Strip
+            with ui.card().classes("app-card w-full"):
+                with ui.row().classes("w-full justify-between items-center mb-2"):
+                    with ui.row().classes("items-center gap-2"):
+                        ui.icon("wifi_tethering", size="20px", color="primary")
+                        ui.label("Radar TCP Feed & Telemetry Control").classes("card-title m-0")
+                    ui.label("Target: C++ Radar Server or Mock TCP Streamer (:8765)").classes("text-xs text-slate-500 hidden sm:block")
+
+                with ui.row().classes("w-full items-center gap-3 flex-wrap"):
                     self.host_input = ui.input(
-                        label="Server IP / Hostname",
+                        label="Server IP / Host",
                         value=self.client.host,
-                    ).classes("w-44")
+                    ).props("outlined dense").classes("w-36")
 
                     self.port_input = ui.number(
-                        label="Server Port",
+                        label="TCP Port",
                         value=self.client.port,
                         min=1024,
                         max=65535,
                         step=1,
-                    ).classes("w-32")
+                    ).props("outlined dense").classes("w-28")
 
                     self.btn_connect = ui.button(
                         "Connect",
@@ -108,11 +113,10 @@ class LiveStreamView:
                         "Disconnect",
                         icon="link_off",
                         on_click=self._handle_disconnect,
-                    ).props("outline color=grey")
+                    ).classes("btn-secondary")
 
-                    ui.separator().props("vertical").classes("h-8 mx-2")
+                    ui.separator().props("vertical").classes("h-7 mx-1 bg-slate-200")
 
-                    # User request: Start Recording button is bright green!
                     self.btn_start_rec = ui.button(
                         "Start Recording",
                         icon="fiber_manual_record",
@@ -129,46 +133,101 @@ class LiveStreamView:
                         "Pause Display",
                         icon="pause",
                         on_click=self._toggle_pause,
-                    ).props("outline color=primary")
+                    ).classes("btn-secondary")
 
-            # 2. Live Telemetry & Status Cards
-            with ui.row().classes("w-full gap-4 flex-wrap"):
-                with ui.card().classes("metric-card flex-1 min-w-[150px]"):
-                    ui.label("Connection Status").classes("metric-title")
-                    self.status_badge = ui.label("DISCONNECTED").classes("metric-val text-gray-500 text-lg")
+            # 2. Status & Telemetry Metrics KPI Row
+            with ui.element("div").classes("kpi-row"):
+                with ui.card().classes("kpi-card"):
+                    ui.label("Connection").classes("kpi-label")
+                    with ui.row().classes("items-center gap-2"):
+                        self.status_dot = ui.element("span").classes("status-dot dot-disconnected")
+                        self.status_badge = ui.label("DISCONNECTED").classes("kpi-val text-lg")
 
-                with ui.card().classes("metric-card flex-1 min-w-[150px]"):
-                    ui.label("Recording State").classes("metric-title")
-                    self.rec_badge = ui.label("REC OFF").classes("metric-val text-gray-500 text-lg")
+                with ui.card().classes("kpi-card"):
+                    ui.label("Recording State").classes("kpi-label")
+                    self.rec_badge = ui.label("REC OFF").classes("kpi-val text-lg text-slate-500")
 
-                with ui.card().classes("metric-card flex-1 min-w-[130px]"):
-                    ui.label("Frame Rate").classes("metric-title")
-                    self.fps_label = ui.label("0.0 fps").classes("metric-val")
+                with ui.card().classes("kpi-card"):
+                    ui.label("Ingest Frame Rate").classes("kpi-label")
+                    with ui.row().classes("items-baseline gap-1"):
+                        self.fps_label = ui.label("0.0").classes("kpi-val")
+                        ui.label("fps").classes("kpi-unit")
 
-                with ui.card().classes("metric-card flex-1 min-w-[130px]"):
-                    ui.label("Frames Ingested").classes("metric-title")
-                    self.frames_label = ui.label("0").classes("metric-val")
+                with ui.card().classes("kpi-card"):
+                    ui.label("Frames Ingested").classes("kpi-label")
+                    self.frames_label = ui.label("0").classes("kpi-val")
 
-                with ui.card().classes("metric-card flex-1 min-w-[130px]"):
-                    ui.label("Latest Seq / Gaps").classes("metric-title")
-                    self.seq_label = ui.label("#0 / 0").classes("metric-val")
+                with ui.card().classes("kpi-card"):
+                    ui.label("Latest Seq / Gaps").classes("kpi-label")
+                    self.seq_label = ui.label("#0 / 0").classes("kpi-val")
 
-                with ui.card().classes("metric-card flex-1 min-w-[130px]"):
-                    ui.label("Recorded Frames").classes("metric-title")
-                    self.rec_frames_label = ui.label("0").classes("metric-val text-red-600")
+                with ui.card().classes("kpi-card"):
+                    ui.label("Recorded Frames / Time").classes("kpi-label")
+                    with ui.row().classes("items-baseline gap-2"):
+                        self.rec_frames_label = ui.label("0").classes("kpi-val")
+                        self.rec_time_label = ui.label("(0.0s)").classes("text-xs font-semibold text-slate-500")
 
-                with ui.card().classes("metric-card flex-1 min-w-[130px]"):
-                    ui.label("Rec Elapsed Time").classes("metric-title")
-                    self.rec_time_label = ui.label("0.0s").classes("metric-val text-red-600")
+            # 3. Primary Live Visualizations: Live Matrix Heatmap & Live Rolling Signal Trend
+            with ui.row().classes("w-full gap-4 items-start no-wrap flex-col lg:flex-row"):
+                with ui.card().classes("app-card flex-1 min-w-0 w-full"):
+                    create_card_header(
+                        title="Live Matrix Heatmap",
+                        subtitle="Real-time 256×64 radar field of view",
+                        icon="grid_view",
+                    )
+                    init_heat_fig = create_matrix_heatmap(None, phase_mode="degrees", height=350, show_title=False)
+                    self.plotly_heat = ui.plotly(init_heat_fig).classes("w-full")
 
-            # 3. Live Excel Spreadsheet Stream Inspector (User Request)
-            with ui.card().classes("w-full panel-container"):
-                with ui.row().classes("w-full justify-between items-center mb-2"):
+                with ui.card().classes("app-card flex-1 min-w-0 w-full"):
+                    create_card_header(
+                        title="Live Signal Trend",
+                        subtitle="Rolling Mean, Min, and Max over time",
+                        icon="timeline",
+                    )
+                    init_trend_fig = go.Figure()
+                    apply_theme_layout(init_trend_fig, height=350)
+                    self.plotly_trend = ui.plotly(init_trend_fig).classes("w-full")
+
+            # 4. Secondary Live Cross-Sections: Element Profile & Frequency Spectrum
+            with ui.row().classes("w-full gap-4 items-start no-wrap flex-col lg:flex-row"):
+                with ui.card().classes("app-card flex-1 min-w-0 w-full"):
+                    with ui.row().classes("w-full justify-between items-center mb-2"):
+                        with ui.row().classes("items-center gap-2"):
+                            ui.icon("analytics", size="18px", color="primary")
+                            ui.label("Live Element Profile").classes("card-title m-0")
+                        self.live_freq_select = ui.select(
+                            options=["A"],
+                            value=self.focused_freq,
+                            label="Channel",
+                            on_change=lambda e: setattr(self, "focused_freq", e.value),
+                        ).props("outlined dense options-dense").classes("w-28")
+
+                    init_elem_fig = create_measurements_vs_elements_plot([], height=320, show_title=False)
+                    self.plotly_elem = ui.plotly(init_elem_fig).classes("w-full")
+
+                with ui.card().classes("app-card flex-1 min-w-0 w-full"):
+                    with ui.row().classes("w-full justify-between items-center mb-2"):
+                        with ui.row().classes("items-center gap-2"):
+                            ui.icon("stacked_line_chart", size="18px", color="primary")
+                            ui.label("Live Frequency Spectrum").classes("card-title m-0")
+                        self.live_elem_select = ui.select(
+                            options=[1],
+                            value=self.focused_elem,
+                            label="Element",
+                            on_change=lambda e: setattr(self, "focused_elem", int(e.value)),
+                        ).props("outlined dense options-dense").classes("w-28")
+
+                    init_freq_fig = create_measurements_vs_frequency_plot([], height=320, show_title=False)
+                    self.plotly_freq = ui.plotly(init_freq_fig).classes("w-full")
+
+            # 5. Live Radar Matrix Stream (Excel View)
+            with ui.card().classes("app-card w-full"):
+                with ui.row().classes("w-full justify-between items-center mb-2 flex-wrap gap-2"):
                     with ui.row().classes("items-center gap-3"):
-                        ui.icon("table_chart", size="24px", color="primary")
-                        ui.label("Live Radar Matrix Stream (Excel View)").classes("panel-header m-0")
+                        ui.icon("table_chart", size="22px", color="primary")
+                        ui.label("Live Radar Matrix Stream (Excel View)").classes("card-title m-0")
                         self.excel_frame_badge = ui.label("Waiting for stream...").classes(
-                            "text-xs font-mono bg-slate-100 text-slate-700 px-3 py-1 rounded-full border border-slate-300"
+                            "text-xs font-mono font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200"
                         )
 
                     with ui.row().classes("items-center gap-2"):
@@ -183,60 +242,29 @@ class LiveStreamView:
                             value=self.excel_channel_slice,
                             label="Channel Window",
                             on_change=self._handle_channel_slice_change,
-                        ).classes("w-48")
+                        ).props("outlined dense options-dense").classes("w-44")
 
-                # Build initial table columns
                 self._rebuild_excel_columns()
-                # Create the Quasar table once
                 self.excel_table = ui.table(
                     columns=self.excel_cols,
                     rows=self.excel_rows,
                     row_key="element",
                     pagination={"rowsPerPage": 15},
-                ).classes("w-full excel-table").props("dense flat bordered")
+                ).props("dense flat bordered").classes("w-full excel-table max-h-[420px]")
 
-            # 4. Live Heatmap & Live Trend (Persistent Plotly Nodes - Zero Glitching)
-            with ui.row().classes("w-full gap-4 items-start"):
-                with ui.card().classes("flex-1 panel-container"):
-                    ui.label("Live Radar Matrix Heatmap (Latest Frame)").classes("panel-header")
-                    init_heat_fig = create_matrix_heatmap(None, phase_mode="degrees", height=360)
-                    self.plotly_heat = ui.plotly(init_heat_fig).classes("w-full")
-
-                with ui.card().classes("flex-1 panel-container"):
-                    ui.label("Live Signal Trend (Mean, Min, Max over Time)").classes("panel-header")
-                    init_trend_fig = go.Figure()
-                    apply_theme_layout(init_trend_fig, title="Live Measurement Trend", height=360)
-                    self.plotly_trend = ui.plotly(init_trend_fig).classes("w-full")
-
-            # 5. Live Cross-Section Plots (Element & Frequency)
-            with ui.row().classes("w-full gap-4 items-start"):
-                with ui.card().classes("flex-1 panel-container"):
-                    with ui.row().classes("w-full justify-between items-center"):
-                        ui.label("Live Element Profile").classes("panel-header")
-                        self.live_freq_select = ui.select(
-                            options=["A"],
-                            value=self.focused_freq,
-                            label="Channel",
-                            on_change=lambda e: setattr(self, "focused_freq", e.value),
-                        ).classes("w-28")
-                    init_elem_fig = create_measurements_vs_elements_plot([], height=340)
-                    self.plotly_elem = ui.plotly(init_elem_fig).classes("w-full")
-
-                with ui.card().classes("flex-1 panel-container"):
-                    with ui.row().classes("w-full justify-between items-center"):
-                        ui.label("Live Frequency Spectrum").classes("panel-header")
-                        self.live_elem_select = ui.select(
-                            options=[1],
-                            value=self.focused_elem,
-                            label="Element",
-                            on_change=lambda e: setattr(self, "focused_elem", int(e.value)),
-                        ).classes("w-28")
-                    init_freq_fig = create_measurements_vs_frequency_plot([], height=340)
-                    self.plotly_freq = ui.plotly(init_freq_fig).classes("w-full")
-
-            # 6. Saved Recording Sessions & Quick Load
-            with ui.card().classes("w-full panel-container"):
-                ui.label("Saved Recording Sessions on Disk").classes("panel-header")
+            # 6. Saved Recording Sessions Panel
+            with ui.card().classes("app-card w-full"):
+                with ui.row().classes("w-full justify-between items-center mb-2 flex-wrap gap-2"):
+                    create_card_header(
+                        title="Saved Recording Sessions",
+                        subtitle="Persisted radar frame recordings on disk (CSV format)",
+                        icon="save",
+                    )
+                    with ui.row().classes("items-center gap-2"):
+                        ui.icon("folder", size="18px", color="primary")
+                        ui.label(f"Path: {self.recording_mgr.base_dir}").classes(
+                            "text-xs font-mono text-slate-600 bg-slate-100 px-2.5 py-1 rounded border border-slate-200"
+                        )
                 self.recordings_list_container = ui.column().classes("w-full")
 
         # Set up periodic UI update timer (2 Hz)
@@ -260,12 +288,12 @@ class LiveStreamView:
         cols = [
             {
                 "name": "element",
-                "label": "Element",
+                "label": "Elem",
                 "field": "element",
                 "sortable": True,
                 "align": "center",
-                "classes": "bg-slate-100 font-bold text-slate-800",
-                "headerClasses": "bg-slate-200 font-bold",
+                "classes": "bg-slate-50 font-bold text-slate-800",
+                "headerClasses": "bg-slate-100 font-bold",
             }
         ]
         for f in active_freqs:
@@ -275,7 +303,7 @@ class LiveStreamView:
                 "field": f,
                 "align": "right",
                 "classes": "font-mono text-xs text-slate-700",
-                "headerClasses": "bg-slate-100 font-bold text-slate-800",
+                "headerClasses": "bg-slate-50 font-bold text-slate-700",
             })
         self.excel_cols = cols
         self._active_slice_freqs = active_freqs
@@ -285,15 +313,12 @@ class LiveStreamView:
         self._rebuild_excel_columns()
         if self.excel_table:
             self.excel_table.columns = self.excel_cols
-        # Force redraw with latest frame
         self._last_rendered_seq = None
 
     def _on_incoming_frame(self, frame: RadarFrame):
         """Callback triggered on every incoming TCP frame."""
-        # Record frame if active
         self.recording_mgr.record_frame(frame)
 
-        # Update rolling trend data buffer
         mat = frame.get_display_matrix(phase_mode="degrees")
         valid = mat[~np.isnan(mat)]
         if len(valid) > 0:
@@ -315,44 +340,52 @@ class LiveStreamView:
         state = self.client.state
         if state == ConnectionState.CONNECTED:
             self.status_badge.text = "CONNECTED"
-            self.status_badge.classes("text-green-600", remove="text-gray-500 text-amber-500 text-red-600")
+            self.status_badge.classes("text-emerald-600 font-bold", remove="text-slate-500 text-amber-500 text-red-600")
+            if hasattr(self, "status_dot") and self.status_dot:
+                self.status_dot.classes("dot-connected", remove="dot-disconnected dot-connecting dot-error")
             self.btn_connect.disable()
             self.btn_disconnect.enable()
         elif state == ConnectionState.CONNECTING:
             self.status_badge.text = "CONNECTING..."
-            self.status_badge.classes("text-amber-500", remove="text-gray-500 text-green-600 text-red-600")
+            self.status_badge.classes("text-amber-500", remove="text-slate-500 text-emerald-600 text-red-600")
+            if hasattr(self, "status_dot") and self.status_dot:
+                self.status_dot.classes("dot-connecting", remove="dot-connected dot-disconnected dot-error")
         elif state == ConnectionState.ERROR:
-            self.status_badge.text = f"ERROR: {self.client.last_error_message or ''}"
-            self.status_badge.classes("text-red-600", remove="text-gray-500 text-green-600 text-amber-500")
+            err_msg = self.client.last_error_message or "Refused"
+            self.status_badge.text = f"ERR: {err_msg[:16]}"
+            self.status_badge.classes("text-red-600", remove="text-slate-500 text-emerald-600 text-amber-500")
+            if hasattr(self, "status_dot") and self.status_dot:
+                self.status_dot.classes("dot-error", remove="dot-connected dot-disconnected dot-connecting")
             self.btn_connect.enable()
             self.btn_disconnect.disable()
         else:
             self.status_badge.text = "DISCONNECTED"
-            self.status_badge.classes("text-gray-500", remove="text-green-600 text-amber-500 text-red-600")
+            self.status_badge.classes("text-slate-500", remove="text-emerald-600 text-amber-500 text-red-600")
+            if hasattr(self, "status_dot") and self.status_dot:
+                self.status_dot.classes("dot-disconnected", remove="dot-connected dot-connecting dot-error")
             self.btn_connect.enable()
             self.btn_disconnect.disable()
 
         # 2. Update Recording Controls
         if self.recording_mgr.is_recording:
             self.rec_badge.text = "RECORDING"
-            self.rec_badge.classes("text-red-600 font-bold", remove="text-gray-500")
+            self.rec_badge.classes("text-red-600 font-bold", remove="text-slate-500")
             self.rec_frames_label.text = str(self.recording_mgr.recorded_frames_count)
-            self.rec_time_label.text = f"{self.recording_mgr.elapsed_seconds}s"
+            self.rec_time_label.text = f"({self.recording_mgr.elapsed_seconds}s)"
             self.btn_start_rec.disable()
             self.btn_stop_rec.enable()
         else:
             self.rec_badge.text = "REC OFF"
-            self.rec_badge.classes("text-gray-500", remove="text-red-600 font-bold")
+            self.rec_badge.classes("text-slate-500", remove="text-red-600 font-bold")
             self.btn_start_rec.enable()
             self.btn_stop_rec.disable()
 
         # Metrics
-        self.fps_label.text = f"{self.client.approx_frame_rate} fps"
+        self.fps_label.text = f"{self.client.approx_frame_rate:.1f}"
         self.frames_label.text = str(self.client.frames_received)
         last_seq = self.client.last_sequence or 0
         self.seq_label.text = f"#{last_seq} / {self.client.sequence_gaps}"
 
-        # If paused or no new frame, do NOT recalculate heavy plots
         if self.is_paused:
             return
 
@@ -360,12 +393,10 @@ class LiveStreamView:
         if frame is None:
             return
 
-        # Skip in-place update if this exact sequence was already rendered
         if frame.sequence_number == self._last_rendered_seq:
             return
         self._last_rendered_seq = frame.sequence_number
 
-        # Update selector options if needed
         if self.live_freq_select.options != frame.frequency_labels:
             self.live_freq_select.options = frame.frequency_labels
         if self.live_elem_select.options != frame.element_ids:
@@ -374,7 +405,7 @@ class LiveStreamView:
         # 3. Update Excel-style Live Data Table
         mat_disp = frame.get_display_matrix(phase_mode="degrees")
         unit = frame.display_unit
-        self.excel_frame_badge.text = f"Frame #{frame.sequence_number} [{frame.data_type} ({unit})] | {frame.timestamp[11:19]} UTC"
+        self.excel_frame_badge.text = f"Frame #{frame.sequence_number} [{frame.data_type} ({unit})] • {frame.timestamp[11:19]} UTC"
 
         excel_rows = []
         active_freqs = getattr(self, "_active_slice_freqs", frame.frequency_labels[:16])
@@ -389,8 +420,8 @@ class LiveStreamView:
         if self.excel_table:
             self.excel_table.rows = excel_rows
 
-        # 4. In-Place Plot Updates (Zero Glitching / No DOM Re-creation)
-        fig_heat = create_matrix_heatmap(frame, phase_mode="degrees", height=360)
+        # 4. In-Place Plot Updates
+        fig_heat = create_matrix_heatmap(frame, phase_mode="degrees", height=350, show_title=False)
         self.plotly_heat.update_figure(fig_heat)
 
         fig_elem = create_measurements_vs_elements_plot(
@@ -398,7 +429,8 @@ class LiveStreamView:
             frequency_label=self.focused_freq,
             focused_element=self.focused_elem,
             phase_mode="degrees",
-            height=340,
+            height=320,
+            show_title=False,
         )
         self.plotly_elem.update_figure(fig_elem)
 
@@ -407,18 +439,19 @@ class LiveStreamView:
             element_id=self.focused_elem,
             focused_frequency=self.focused_freq,
             phase_mode="degrees",
-            height=340,
+            height=320,
+            show_title=False,
         )
         self.plotly_freq.update_figure(fig_freq)
 
         fig_trend = go.Figure()
         if self.trend_times:
             fig_trend.add_trace(go.Scatter(x=self.trend_times, y=self.trend_means, name="Mean", line=dict(color=PALETTE["primary"], width=2)))
-            fig_trend.add_trace(go.Scatter(x=self.trend_times, y=self.trend_maxs, name="Max", line=dict(color="#FF7F0E", width=1, dash="dot")))
-            fig_trend.add_trace(go.Scatter(x=self.trend_times, y=self.trend_mins, name="Min", line=dict(color="#059669", width=1, dash="dot")))
+            fig_trend.add_trace(go.Scatter(x=self.trend_times, y=self.trend_maxs, name="Max", line=dict(color="#D97706", width=1.2, dash="dot")))
+            fig_trend.add_trace(go.Scatter(x=self.trend_times, y=self.trend_mins, name="Min", line=dict(color="#059669", width=1.2, dash="dot")))
             fig_trend.update_xaxes(title_text="Time")
             fig_trend.update_yaxes(title_text=f"Measurement [{unit}]")
-        apply_theme_layout(fig_trend, title="Live Measurement Trend", height=360)
+        apply_theme_layout(fig_trend, height=350)
         self.plotly_trend.update_figure(fig_trend)
 
     def _refresh_recordings_list(self):
@@ -427,7 +460,7 @@ class LiveStreamView:
 
         with self.recordings_list_container:
             if not sessions:
-                ui.label("No recordings captured yet. Click 'Start Recording' above to record live data.").classes("text-gray-500 italic p-2")
+                ui.label("No recordings captured yet. Click 'Start Recording' above to record live telemetry.").classes("text-slate-400 italic p-3")
                 return
 
             for s in sessions:
@@ -436,18 +469,20 @@ class LiveStreamView:
                 st = s.get("start_time", "")[:19]
                 counts = s.get("frame_counts", {})
                 counts_str = f"AMP: {counts.get('AMP', 0)} | NOISE: {counts.get('NOISE', 0)} | PHASE: {counts.get('PHASE', 0)}"
+                s_dir = s.get("session_dir", "")
 
-                with ui.row().classes("w-full justify-between items-center p-3 border-b border-gray-200 hover:bg-gray-50"):
+                with ui.row().classes("w-full justify-between items-center p-3 border-b border-slate-100 hover:bg-slate-50 transition-colors"):
                     with ui.column().classes("gap-1"):
-                        ui.label(f"Session: {sid}").classes("font-bold text-slate-800")
-                        ui.label(f"Recorded at: {st} | Total Frames: {total} ({counts_str})").classes("text-xs text-gray-600")
+                        ui.label(f"Session: {sid}").classes("font-semibold text-sm text-slate-800")
+                        ui.label(f"Recorded: {st} • {total} Frames ({counts_str})").classes("text-xs text-slate-500")
+                        ui.label(f"📁 {s_dir} (CSVs saved in /AMP, /NOISE, /PHASE)").classes("text-[11px] font-mono text-slate-500")
 
                     with ui.row().classes("items-center gap-2"):
                         ui.button(
                             "Open in File Diagnostics",
                             icon="analytics",
                             on_click=lambda s_dir=s.get("session_dir"): self._load_recording_into_diagnostics(s_dir),
-                        ).classes("btn-primary")
+                        ).classes("btn-secondary")
 
     def _load_recording_into_diagnostics(self, session_dir: str):
         try:
@@ -468,19 +503,19 @@ class LiveStreamView:
 
     def _handle_start_rec(self):
         session = self.recording_mgr.start_recording()
-        ui.notify(f"Recording started: {session.session_id}", type="positive")
+        ui.notify(f"Recording started to {session.session_dir}", type="positive")
 
     def _handle_stop_rec(self):
         session = self.recording_mgr.stop_recording()
         if session:
-            ui.notify(f"Recording stopped. Saved {session.total_frames} frames to disk.", type="info")
+            ui.notify(f"Recording stopped. Saved {session.total_frames} CSV frames to {session.session_dir}", type="info")
         self._refresh_recordings_list()
 
     def _toggle_pause(self):
         self.is_paused = not self.is_paused
         if self.is_paused:
             self.btn_pause.text = "Resume Display"
-            self.btn_pause.props("color=amber")
+            self.btn_pause.classes("btn-primary", remove="btn-secondary")
         else:
             self.btn_pause.text = "Pause Display"
-            self.btn_pause.props("outline color=primary")
+            self.btn_pause.classes("btn-secondary", remove="btn-primary")

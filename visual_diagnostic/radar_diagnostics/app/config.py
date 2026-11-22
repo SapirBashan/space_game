@@ -9,44 +9,50 @@ from typing import Dict, List, Optional
 import os
 
 
-# Modern Laboratory Matte UI Color Palette
+# Modern Technical Dashboard Color Palette (Grafana / Linear Inspired)
 PALETTE = {
-    "primary": "#1E3A5F",          # Matte deep navy / steel blue
-    "primary_hover": "#162C46",    # Darker matte blue on hover
-    "primary_pressed": "#0F1E30",  # Deep matte pressed blue
-    "primary_accent": "#0284C7",   # Modern cyan-blue accent for focus
-    "bg_page": "#F1F5F9",          # Crisp light slate background (high contrast)
-    "bg_panel": "#FFFFFF",         # Pure white panel surface
-    "table_header": "#E2E8F0",     # Crisp slate table header
-    "border": "#CBD5E1",          # Defined, crisp slate border
+    "sidebar_bg": "#101D32",       # Dark navy sidebar
+    "sidebar_hover": "#1C304C",    # Dark navy hover
+    "sidebar_active": "#1E3A5F",   # Active navigation item background
+    "primary": "#2563EB",          # Modern electric blue
+    "primary_hover": "#1D4ED8",    # Darker blue on hover
+    "primary_pressed": "#1E40AF",  # Pressed blue
+    "primary_accent": "#0891B2",   # Cyan accent for live data
+    "bg_page": "#F4F7FB",          # Soft slate-gray canvas
+    "bg_panel": "#FFFFFF",         # Pure white card surface
+    "table_header": "#F8FAFC",     # Light slate table header
+    "border": "#E2E8F0",           # Subtle crisp border
+    "border_light": "#F1F5F9",     # Very light border / divider
     "surface": "#FFFFFF",          # Pure white card surface
-    "text_main": "#0F172A",        # High contrast deep slate text
-    "text_secondary": "#475569",   # Medium slate text
+    "text_main": "#142338",        # Deep navy/slate text
+    "text_secondary": "#64748B",   # Muted slate text
+    "text_muted": "#94A3B8",       # Very light secondary text
     "error": "#DC2626",            # Modern vivid red
     "warning": "#D97706",          # Modern amber
     "success": "#059669",          # Modern emerald green
-    "accent_azure": "#E0F2FE",     # Soft light sky accent
-    "terminal_bg": "#0B1120",      # Modern obsidian dark terminal
+    "live_accent": "#0891B2",      # Cyan accent
+    "accent_azure": "#EFF6FF",     # Soft light blue highlight
+    "terminal_bg": "#0B1120",      # Obsidian terminal background
 }
 
 # Categorical high-contrast palette for distinct test overlays (up to 16 tests)
 TEST_COLORS = [
-    "#1E3A5F",  # Matte Navy Blue
-    "#EA580C",  # Vibrant Deep Orange
+    "#2563EB",  # Electric Blue
+    "#EA580C",  # Vibrant Orange
     "#059669",  # Emerald Green
     "#DC2626",  # Crimson Red
     "#7C3AED",  # Deep Violet
-    "#0284C7",  # Ocean Sky Blue
+    "#0891B2",  # Cyan Blue
     "#DB2777",  # Deep Rose
     "#475569",  # Slate Grey
-    "#CA8A04",  # Warm Amber Gold
+    "#D97706",  # Amber Gold
     "#0D9488",  # Teal Cyan
     "#9333EA",  # Rich Purple
     "#B91C1C",  # Dark Crimson
-    "#0369A1",  # Deep Sky Blue
-    "#15803D",  # Forest Green
+    "#0284C7",  # Ocean Sky Blue
+    "#16A34A",  # Forest Green
     "#C2410C",  # Rust Orange
-    "#4338CA",  # Indigo
+    "#4F46E5",  # Indigo
 ]
 
 

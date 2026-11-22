@@ -15,7 +15,8 @@ def create_test_difference_curve(
     ref_frame: Optional[RadarFrame],
     frequency_label: str = "A",
     phase_mode: str = "degrees",
-    height: int = 420,
+    height: int = 340,
+    show_title: bool = False,
 ) -> go.Figure:
     """Plot difference between test_frame and baseline reference across elements for a frequency."""
     fig = go.Figure()
@@ -28,9 +29,9 @@ def create_test_difference_curve(
             x=0.5,
             y=0.5,
             showarrow=False,
-            font=dict(size=14, color="#888888"),
+            font=dict(size=13, color="#94A3B8"),
         )
-        return apply_theme_layout(fig, "Test-to-Baseline Difference Curve", height=height)
+        return apply_theme_layout(fig, height=height, show_legend=False)
 
     stats = compute_difference_statistics(test_frame, ref_frame, phase_mode=phase_mode)
     unit = "deg" if test_frame.data_type == "PHASE" and phase_mode == "degrees" else test_frame.display_unit
@@ -42,15 +43,14 @@ def create_test_difference_curve(
         diff_y = stats.diff_matrix[:, 0]
 
     # Zero reference line
-    fig.add_hline(y=0.0, line_dash="solid", line_color="#888888", line_width=1)
+    fig.add_hline(y=0.0, line_dash="solid", line_color="#CBD5E1", line_width=1.2)
 
     fig.add_trace(go.Scatter(
         x=test_frame.element_ids,
         y=diff_y,
-        mode="lines+markers",
+        mode="lines",
         name=f"{test_frame.test_id} - {ref_frame.test_id}",
         line=dict(color=PALETTE["primary"], width=2),
-        marker=dict(size=4, color=PALETTE["primary"]),
         hovertemplate=(
             f"<b>Diff: {test_frame.test_id} vs {ref_frame.test_id}</b><br>"
             "Element: %{x}<br>"
@@ -60,24 +60,24 @@ def create_test_difference_curve(
         ),
     ))
 
-    # Metric annotations
-    stats_text = f"Mean Diff: {stats.mean_diff:+.2f} {unit} | RMS Diff: {stats.rms_diff:.2f} {unit} | Max |Diff|: {stats.max_abs_diff:.2f} {unit}"
-    fig.add_annotation(
-        text=stats_text,
-        xref="paper",
-        yref="paper",
-        x=0.02,
-        y=0.98,
-        showarrow=False,
-        bgcolor="rgba(255, 255, 255, 0.85)",
-        bordercolor=PALETTE["border"],
-        borderwidth=1,
-        font=dict(size=11, color=PALETTE["text_main"]),
-    )
+    title_str = f"Delta Curve: {test_frame.test_id} minus {ref_frame.test_id} (Channel {frequency_label})" if show_title else ""
+    apply_theme_layout(fig, title=title_str, height=height, show_legend=False)
 
-    title = f"Delta Curve: {test_frame.test_id} minus {ref_frame.test_id} (Channel {frequency_label})"
-    apply_theme_layout(fig, title=title, height=height)
-    fig.update_xaxes(title_text="Element Index")
+    if test_frame.element_ids:
+        elem_count = len(test_frame.element_ids)
+        step = 25 if elem_count <= 128 else 50
+        tick_vals = list(range(1, elem_count + 1, step))
+        if elem_count not in tick_vals:
+            tick_vals.append(elem_count)
+        fig.update_xaxes(
+            title_text="Element Index",
+            tickmode="array",
+            tickvals=tick_vals,
+            ticktext=[str(v) for v in tick_vals],
+        )
+    else:
+        fig.update_xaxes(title_text="Element Index")
+
     fig.update_yaxes(title_text=f"Delta [{unit}]")
     return fig
 
@@ -86,7 +86,8 @@ def create_element_stability_curve(
     stability: Optional[StabilityMetrics],
     element_ids: List[int],
     data_type: str = "AMP",
-    height: int = 420,
+    height: int = 340,
+    show_title: bool = False,
 ) -> go.Figure:
     """Plot average standard deviation per element across all tests."""
     fig = go.Figure()
@@ -99,9 +100,9 @@ def create_element_stability_curve(
             x=0.5,
             y=0.5,
             showarrow=False,
-            font=dict(size=14, color="#888888"),
+            font=dict(size=13, color="#94A3B8"),
         )
-        return apply_theme_layout(fig, "Per-Element Stability Across Tests", height=height)
+        return apply_theme_layout(fig, height=height, show_legend=False)
 
     unit = "deg" if data_type == "PHASE" else "dB"
     mean_std_per_elem = np.nanmean(stability.std_matrix, axis=1)
@@ -114,20 +115,36 @@ def create_element_stability_curve(
         hovertemplate="Element: %{x}<br>Avg Std Dev: %{y:.3f} " + unit + "<extra></extra>",
     ))
 
-    # Threshold indicator for high variance
     high_var_thresh = float(np.mean(mean_std_per_elem) + 2.0 * np.std(mean_std_per_elem))
     fig.add_hline(
         y=high_var_thresh,
-        line_dash="dash",
+        line_dash="dot",
         line_color=PALETTE["error"],
-        annotation_text="High Variation Threshold (+2σ)",
+        line_width=1.2,
+        annotation_text="High Variation (+2σ)",
         annotation_position="top right",
+        annotation_font=dict(size=10, color=PALETTE["error"]),
     )
 
-    title = f"Per-Element Stability Across Tests ({data_type})"
-    apply_theme_layout(fig, title=title, height=height)
-    fig.update_xaxes(title_text="Radar Element Index")
-    fig.update_yaxes(title_text=f"Std Dev Across Tests [{unit}]")
+    title_str = f"Per-Element Stability Across Tests ({data_type})" if show_title else ""
+    apply_theme_layout(fig, title=title_str, height=height, show_legend=False)
+
+    if element_ids:
+        elem_count = len(element_ids)
+        step = 25 if elem_count <= 128 else 50
+        tick_vals = list(range(1, elem_count + 1, step))
+        if elem_count not in tick_vals:
+            tick_vals.append(elem_count)
+        fig.update_xaxes(
+            title_text="Radar Element Index",
+            tickmode="array",
+            tickvals=tick_vals,
+            ticktext=[str(v) for v in tick_vals],
+        )
+    else:
+        fig.update_xaxes(title_text="Radar Element Index")
+
+    fig.update_yaxes(title_text=f"Std Dev [{unit}]")
     return fig
 
 
@@ -135,7 +152,8 @@ def create_frequency_stability_curve(
     stability: Optional[StabilityMetrics],
     frequency_labels: List[str],
     data_type: str = "AMP",
-    height: int = 420,
+    height: int = 340,
+    show_title: bool = False,
 ) -> go.Figure:
     """Plot average standard deviation per frequency channel across all tests."""
     fig = go.Figure()
@@ -148,32 +166,50 @@ def create_frequency_stability_curve(
             x=0.5,
             y=0.5,
             showarrow=False,
-            font=dict(size=14, color="#888888"),
+            font=dict(size=13, color="#94A3B8"),
         )
-        return apply_theme_layout(fig, "Per-Frequency Stability Across Tests", height=height)
+        return apply_theme_layout(fig, height=height, show_legend=False)
 
     unit = "deg" if data_type == "PHASE" else "dB"
     mean_std_per_freq = np.nanmean(stability.std_matrix, axis=0)
 
     fig.add_trace(go.Bar(
-        x=frequency_labels,
+        x=list(range(len(frequency_labels))),
         y=mean_std_per_freq,
         name="Channel Std Dev",
         marker_color=PALETTE["primary_hover"],
-        hovertemplate="Channel: %{x}<br>Avg Std Dev: %{y:.3f} " + unit + "<extra></extra>",
+        hovertemplate="Channel: %{customdata}<br>Avg Std Dev: %{y:.3f} " + unit + "<extra></extra>",
+        customdata=frequency_labels,
     ))
 
     high_var_thresh = float(np.mean(mean_std_per_freq) + 2.0 * np.std(mean_std_per_freq))
     fig.add_hline(
         y=high_var_thresh,
-        line_dash="dash",
+        line_dash="dot",
         line_color=PALETTE["error"],
-        annotation_text="High Noise Threshold (+2σ)",
+        line_width=1.2,
+        annotation_text="High Noise (+2σ)",
         annotation_position="top right",
+        annotation_font=dict(size=10, color=PALETTE["error"]),
     )
 
-    title = f"Per-Frequency Channel Stability Across Tests ({data_type})"
-    apply_theme_layout(fig, title=title, height=height)
-    fig.update_xaxes(title_text="Frequency Channel")
-    fig.update_yaxes(title_text=f"Std Dev Across Tests [{unit}]")
+    title_str = f"Per-Frequency Channel Stability Across Tests ({data_type})" if show_title else ""
+    apply_theme_layout(fig, title=title_str, height=height, show_legend=False)
+
+    if frequency_labels:
+        labels = frequency_labels
+        step = 4 if len(labels) <= 32 else 8
+        tick_indices = list(range(0, len(labels), step))
+        if (len(labels) - 1) not in tick_indices:
+            tick_indices.append(len(labels) - 1)
+        fig.update_xaxes(
+            title_text="Frequency Channel",
+            tickmode="array",
+            tickvals=tick_indices,
+            ticktext=[labels[i] for i in tick_indices],
+        )
+    else:
+        fig.update_xaxes(title_text="Frequency Channel")
+
+    fig.update_yaxes(title_text=f"Std Dev [{unit}]")
     return fig
