@@ -197,6 +197,26 @@ class SessionManager:
             return None
         return self.current_dataset.get_frame(self.baseline_test_id)
 
+    def get_filtered_baseline_frame(self) -> Optional[RadarFrame]:
+        """Return the baseline frame with current element/frequency filters applied."""
+        base_frame = self.get_baseline_frame()
+        if not base_frame:
+            return None
+            
+        dataset = self.current_dataset
+        common_elems = dataset.get_common_elements()
+        common_freqs = dataset.get_common_frequencies()
+
+        elem_indices = [
+            i for i, eid in enumerate(common_elems)
+            if eid in self.selected_element_ids
+        ]
+        freq_indices = [
+            j for j, fl in enumerate(common_freqs)
+            if fl in self.selected_frequency_labels
+        ]
+        return base_frame.subset(elem_indices, freq_indices)
+
     def get_comparison_frame(self) -> Optional[RadarFrame]:
         if not self.comparison_test_id:
             return None
@@ -227,7 +247,7 @@ class SessionManager:
 
         test_summaries: List[TestSummaryMetrics] = []
         all_anomalies: List[AnomalyRecord] = []
-        base_frame = self.get_baseline_frame()
+        base_frame = self.get_filtered_baseline_frame()
 
         for f in frames:
             anoms = detect_frame_anomalies(

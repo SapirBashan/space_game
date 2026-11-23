@@ -158,7 +158,7 @@ class ReportsView:
                     ui.button(
                         "Open in New Tab",
                         icon="open_in_new",
-                        on_click=lambda: ui.open(f"/reports/{filename}"),
+                        on_click=lambda: ui.navigate.to(f"/reports/{filename}", new_tab=True),
                     ).classes("btn-primary")
 
             with self.preview_container:

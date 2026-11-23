@@ -120,14 +120,16 @@ class LiveStreamView:
                     self.btn_start_rec = ui.button(
                         "Start Recording",
                         icon="fiber_manual_record",
+                        color="green",
                         on_click=self._handle_start_rec,
-                    ).classes("btn-success")
+                    )
 
                     self.btn_stop_rec = ui.button(
                         "Stop Recording",
                         icon="stop",
+                        color="red",
                         on_click=self._handle_stop_rec,
-                    ).classes("btn-danger")
+                    )
 
                     self.btn_pause = ui.button(
                         "Pause Display",
