@@ -788,11 +788,13 @@ class FileDiagnosticsView:
 
         self.manager.set_active_data_type(data_type)
         self._selection_explicitly_cleared = False
-        self.type_select.value = data_type
         ui.notify(f"Loaded {loaded_count} sample {data_type} tests successfully!", type="positive")
-        self.refresh()
-        if self.on_update:
-            self.on_update()
+        if self.type_select.value != data_type:
+            self.type_select.value = data_type
+        else:
+            self.refresh()
+            if self.on_update:
+                self.on_update()
 
     def _clear_data(self):
         self.manager.clear_all()

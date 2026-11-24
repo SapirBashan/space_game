@@ -124,10 +124,17 @@ def detect_frame_anomalies(
     # Baseline Delta check
     if baseline_frame is not None and baseline_frame.test_id != frame.test_id:
         base_mat = baseline_frame.get_display_matrix(phase_mode=phase_mode)
+        
+        # Align shapes in case of mismatched element/frequency counts between tests
+        min_elems = min(mat.shape[0], base_mat.shape[0])
+        min_freqs = min(mat.shape[1], base_mat.shape[1])
+        mat_aligned = mat[:min_elems, :min_freqs]
+        base_mat_aligned = base_mat[:min_elems, :min_freqs]
+        
         if frame.data_type == "PHASE" and phase_mode == "degrees":
-            diff = circular_diff_deg(mat, base_mat)
+            diff = circular_diff_deg(mat_aligned, base_mat_aligned)
         else:
-            diff = mat - base_mat
+            diff = mat_aligned - base_mat_aligned
 
         max_allowed_delta = (
             thresholds.amp_max_test_delta_db

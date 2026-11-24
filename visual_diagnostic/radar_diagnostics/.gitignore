@@ -40,3 +40,8 @@ reports_output/*
 # Logs and temporary files
 *.log
 *.tmp
+
+# PyInstaller builds
+build/
+dist/
+*.spec

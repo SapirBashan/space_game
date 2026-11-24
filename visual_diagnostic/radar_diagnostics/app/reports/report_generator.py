@@ -71,9 +71,8 @@ def export_frequency_rankings_to_csv(rankings: List[FrequencyRanking]) -> str:
     return df.to_csv(index=False)
 
 
-def export_test_summary_to_csv(manager: SessionManager) -> str:
+def export_test_summary_to_csv(summary) -> str:
     """Serialize test summary metrics table into CSV string."""
-    summary = manager.get_summary_metrics()
     rows = []
     for ts in summary.test_summaries:
         rows.append({

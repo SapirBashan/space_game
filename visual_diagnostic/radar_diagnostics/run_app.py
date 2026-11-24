@@ -15,12 +15,15 @@ import app.main  # Import to register routes and handlers
 from nicegui import ui
 
 
+import multiprocessing
+
 def main():
+    multiprocessing.freeze_support()
     parser = argparse.ArgumentParser(description="Launch PSP Radar Diagnostics Platform GUI")
     parser.add_argument("--host", default=default_config.gui_host, help="Bind host (default: 0.0.0.0)")
     parser.add_argument("--port", type=int, default=default_config.gui_port, help="Port to serve (default: 8080)")
     parser.add_argument("--reload", action="store_true", help="Enable auto-reload on code change")
-    args = parser.parse_args()
+    args, _ = parser.parse_known_args()
 
     print(f"===========================================================")
     print(f" PSP Radar Diagnostics & Live Monitoring Platform")
