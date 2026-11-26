@@ -31,7 +31,9 @@ class SettingsView:
                         with ui.column().classes("gap-0"):
                             ui.label("Laboratory Thresholds & Diagnostic Configuration").classes("card-title m-0")
                             ui.label("Control PASS/FAIL criteria, anomaly detection sensitivity, and circular math parameters").classes("card-subtitle")
-                    ui.label("Active Session").classes("chip-info")
+                    with ui.column().classes("items-end"):
+                        ui.label("Active Session").classes("chip-info")
+                        ui.label("Version 0.1.1").classes("text-xs font-mono text-slate-400 mt-1")
 
             # 1. Amplitude (AMP) Engineering Limits
             with ui.card().classes("app-card w-full"):

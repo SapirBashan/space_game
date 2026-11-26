@@ -22,6 +22,7 @@ from app.ui.file_diagnostics import FileDiagnosticsView
 from app.ui.live_stream import LiveStreamView
 from app.ui.reports_view import ReportsView
 from app.ui.settings_view import SettingsView
+from app.ui.space_game_view import SpaceGameView
 
 
 # Deliberately loaded after existing styles.css, so the new shell can override
@@ -342,6 +343,11 @@ class AppLayout:
             "subtitle": "Cross-test delta evaluations, element drift, and frequency stability analysis.",
             "icon": "compare_arrows",
         },
+        "game": {
+            "title": "Space Game",
+            "subtitle": "Play the Space Game embedded in this dashboard.",
+            "icon": "sports_esports",
+        },
         "reports": {
             "title": "Reports & Exports",
             "subtitle": "Generate laboratory diagnostics HTML summaries and export measurement CSVs.",
@@ -364,6 +370,7 @@ class AppLayout:
         self.session_manager = session_manager
         self.tcp_client = tcp_client
         self.recording_manager = recording_manager
+        self.easter_egg_counter = 0
 
         # Keep the existing view objects. Never recreate them while switching layout.
         self.file_diag_view = FileDiagnosticsView(
@@ -381,6 +388,7 @@ class AppLayout:
             on_update=self._on_data_updated,
         )
         self.reports_view = ReportsView(self.session_manager)
+        self.space_game_view = SpaceGameView()
         self.settings_view = SettingsView(
             self.session_manager,
             on_update=self._on_data_updated,
@@ -436,6 +444,8 @@ class AppLayout:
                             item.on("keydown.enter", lambda _, k=key: self.switch_to_tab(k))
                             item.props("tabindex=0 role=button")
                             self.nav_buttons[key] = item
+                            if key == "game":
+                                item.set_visibility(False)
 
                 with ui.row().classes("sidebar-footer dual-sidebar-footer"):
                     self.btn_collapse = ui.button(
@@ -481,6 +491,8 @@ class AppLayout:
                             icon=info["icon"],
                             on_click=lambda _, k=key: self.switch_to_tab(k),
                         ).props("flat no-caps").classes("dual-tab-button")
+                        if key == "game":
+                            self.tab_buttons[key].set_visibility(False)
 
                 # IMPORTANT: The 5 pages are only rendered once, in shared containers.
                 with ui.column().classes("content-canvas dual-content"):
@@ -494,6 +506,9 @@ class AppLayout:
                         self.reports_view.render()
                     with ui.column().classes("w-full gap-4 min-w-0 items-stretch") as self.view_containers["settings"]:
                         self.settings_view.render()
+
+                    with ui.column().classes("w-full h-full min-w-0 items-stretch") as self.view_containers["game"]:
+                        self.space_game_view.build()
 
         self._update_view_visibility()
         self._sync_active_navigation()
@@ -553,6 +568,14 @@ class AppLayout:
 
     def _toggle_sidebar(self):
         """Keep the brand PNG visible (icon portion) in collapsed mode."""
+        self.easter_egg_counter += 1
+        if self.easter_egg_counter == 4:
+            if "game" in self.nav_buttons:
+                self.nav_buttons["game"].set_visibility(True)
+            if "game" in self.tab_buttons:
+                self.tab_buttons["game"].set_visibility(True)
+            ui.notify("Easter Egg Unlocked! Space Game available.", color="positive")
+            
         self.is_sidebar_collapsed = not self.is_sidebar_collapsed
         if self.is_sidebar_collapsed:
             self.sidebar_elem.classes(add="sidebar--collapsed")

@@ -28,6 +28,10 @@ os.makedirs(default_config.reports_dir, exist_ok=True)
 app.mount("/reports", StaticFiles(directory=default_config.reports_dir), name="reports")
 
 static_dir = os.path.join(default_config.base_dir, "app", "static")
+game_dir = os.path.join(default_config.base_dir, "app", "game")
+if os.path.isdir(game_dir):
+    app.mount("/game", StaticFiles(directory=game_dir, html=True), name="game")
+
 if os.path.isdir(static_dir):
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 

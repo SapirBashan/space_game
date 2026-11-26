@@ -7,6 +7,8 @@ def _check_diff():
         diff = mat1 - mat2
     except ValueError as e:
         print(f"Error caught: {e}")
-        
-    
+
+
 _check_diff()
+
+
